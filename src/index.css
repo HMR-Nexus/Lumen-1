@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-lumen-primary: #1e40af;
+  --color-lumen-primary-light: #3b82f6;
+  --color-lumen-secondary: #f59e0b;
+  --color-lumen-success: #16a34a;
+  --color-lumen-danger: #dc2626;
+  --color-lumen-warning: #f59e0b;
+
+  /* Team colors */
+  --color-team-rot: #dc2626;
+  --color-team-gruen: #16a34a;
+  --color-team-blau: #2563eb;
+  --color-team-gelb: #eab308;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #f9fafb;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
