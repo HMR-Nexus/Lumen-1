@@ -9,6 +9,7 @@ export const ROUTES = {
     ORDERS_NEW: '/admin/orders/new',
     ORDERS_EDIT: '/admin/orders/:id/edit',
     ORDERS_ASSIGN: '/admin/orders/:id/assign',
+    ORDERS_DETAIL: '/admin/orders/:id',
     CERTIFICATION: '/admin/certification',
     PERSONNEL: '/admin/personnel',
     MATERIALS: '/admin/materials',
@@ -18,7 +19,9 @@ export const ROUTES = {
   TECHNICIAN: {
     DASHBOARD: '/tech',
     ORDERS: '/tech/orders',
+    ORDERS_DETAIL: '/tech/orders/:id',
     RUECKMELDUNG: '/tech/rueckmeldung',
+    RUECKMELDUNG_FORM: '/tech/orders/:id/rueckmeldung',
     SCHEDULE: '/tech/schedule',
   },
 

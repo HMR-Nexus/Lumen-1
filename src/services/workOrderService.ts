@@ -245,3 +245,114 @@ export async function fetchWorkOrderDetail(table: DetailTable, workOrderId: stri
     .maybeSingle()
   return { data, error: error?.message ?? null }
 }
+
+// ── Technician / Sprint 4 ──────────────────────────────────────
+
+export async function fetchMyWorkOrders(userId: string, team: string | null) {
+  let query = supabase
+    .from('work_orders')
+    .select(`
+      *,
+      clients ( name, code ),
+      projects ( name, code ),
+      operators ( name, code )
+    `)
+    .not('status', 'in', '("cancelled","paid","returned")')
+    .order('assigned_date', { ascending: true, nullsFirst: false })
+
+  if (team) {
+    query = query.or(`assigned_technician.eq.${userId},assigned_team.eq.${team}`)
+  } else {
+    query = query.eq('assigned_technician', userId)
+  }
+
+  const { data, error } = await query
+  return { data: data ?? [], error: error?.message ?? null }
+}
+
+export async function transitionWorkOrderStatus(
+  id: string,
+  toStatus: WorkOrderStatus,
+  changedBy: string,
+  notes?: string,
+) {
+  const { data: current } = await supabase
+    .from('work_orders')
+    .select('status')
+    .eq('id', id)
+    .single()
+
+  const fromStatus = current?.status ?? null
+
+  const { data, error } = await supabase
+    .from('work_orders')
+    .update({ status: toStatus, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return { data: null, error: error.message }
+
+  await supabase.from('work_order_state_history').insert({
+    work_order_id: id,
+    from_status: fromStatus,
+    to_status: toStatus,
+    changed_by: changedBy,
+    notes: notes ?? null,
+  })
+
+  return { data, error: null }
+}
+
+export async function fetchStateHistory(workOrderId: string) {
+  const { data, error } = await supabase
+    .from('work_order_state_history')
+    .select('*')
+    .eq('work_order_id', workOrderId)
+    .order('created_at', { ascending: true })
+  return { data: data ?? [], error: error?.message ?? null }
+}
+
+export async function fetchWorkOrderPhotos(workOrderId: string) {
+  const { data, error } = await supabase
+    .from('work_order_photos')
+    .select('*')
+    .eq('work_order_id', workOrderId)
+    .order('created_at', { ascending: true })
+  return { data: data ?? [], error: error?.message ?? null }
+}
+
+export async function uploadWorkOrderPhoto(
+  workOrderId: string,
+  photoType: 'before' | 'during' | 'after',
+  file: File,
+  userId: string,
+) {
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const filename = `${Date.now()}.${ext}`
+  const storagePath = `${workOrderId}/${photoType}/${filename}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('work-order-photos')
+    .upload(storagePath, file, { contentType: file.type })
+
+  if (uploadError) return { data: null, error: uploadError.message }
+
+  const { data, error } = await supabase
+    .from('work_order_photos')
+    .insert({
+      work_order_id: workOrderId,
+      storage_path: storagePath,
+      photo_type: photoType,
+      uploaded_by: userId,
+    })
+    .select()
+    .single()
+
+  return { data, error: error?.message ?? null }
+}
+
+export function getPhotoPublicUrl(storagePath: string): string {
+  const { data } = supabase.storage.from('work-order-photos').getPublicUrl(storagePath)
+  return data.publicUrl
+}

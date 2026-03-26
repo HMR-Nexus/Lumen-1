@@ -11,8 +11,7 @@ const TEAM_COLORS: Record<string, string> = {
 }
 
 const NAV_ITEMS: BottomNavItem[] = [
-  { label: 'Aufträge', path: ROUTES.TECHNICIAN.DASHBOARD, icon: '📋' },
-  { label: 'Bericht', path: ROUTES.TECHNICIAN.RUECKMELDUNG, icon: '📝' },
+  { label: 'Aufträge', path: ROUTES.TECHNICIAN.ORDERS, icon: '📋' },
   { label: 'Kalender', path: ROUTES.TECHNICIAN.SCHEDULE, icon: '📅' },
 ]
 

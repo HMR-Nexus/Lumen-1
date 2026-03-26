@@ -12,6 +12,10 @@ import { WorkOrdersPage } from '@/pages/admin/WorkOrdersPage'
 import { WorkOrderFormPage } from '@/pages/admin/WorkOrderFormPage'
 import { WorkOrderAssignPage } from '@/pages/admin/WorkOrderAssignPage'
 import { TechDashboard } from '@/pages/technician/TechDashboard'
+import { TechOrdersPage } from '@/pages/technician/TechOrdersPage'
+import { TechOrderDetailPage } from '@/pages/technician/TechOrderDetailPage'
+import { RueckmeldungPage } from '@/pages/technician/RueckmeldungPage'
+import { WorkOrderDetailPage } from '@/pages/admin/WorkOrderDetailPage'
 import { ContractorDashboard } from '@/pages/contractor/ContractorDashboard'
 import { ROUTES } from '@/config/routes'
 
@@ -32,6 +36,7 @@ function App() {
               <Route path={ROUTES.ADMIN.ORDERS_NEW} element={<WorkOrderFormPage />} />
               <Route path={ROUTES.ADMIN.ORDERS_EDIT} element={<WorkOrderFormPage />} />
               <Route path={ROUTES.ADMIN.ORDERS_ASSIGN} element={<WorkOrderAssignPage />} />
+              <Route path={ROUTES.ADMIN.ORDERS_DETAIL} element={<WorkOrderDetailPage />} />
             </Route>
           </Route>
 
@@ -39,6 +44,9 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['technician']} />}>
             <Route element={<TechnicianLayout />}>
               <Route path={ROUTES.TECHNICIAN.DASHBOARD} element={<TechDashboard />} />
+              <Route path={ROUTES.TECHNICIAN.ORDERS} element={<TechOrdersPage />} />
+              <Route path={ROUTES.TECHNICIAN.ORDERS_DETAIL} element={<TechOrderDetailPage />} />
+              <Route path={ROUTES.TECHNICIAN.RUECKMELDUNG_FORM} element={<RueckmeldungPage />} />
             </Route>
           </Route>
 

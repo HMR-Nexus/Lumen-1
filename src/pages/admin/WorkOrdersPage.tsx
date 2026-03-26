@@ -263,7 +263,10 @@ export function WorkOrdersPage() {
               </thead>
               <tbody className="divide-y divide-gf-border">
                 {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gf-surface/50 transition-colors">
+                  <tr
+                    key={order.id}
+                    className={`hover:bg-gf-surface/50 transition-colors ${order.status === 'rueckmeldung_sent' ? 'bg-amber-50/60' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <span className="font-mono font-semibold text-gf-primary text-xs">
                         {order.order_number}
@@ -302,7 +305,17 @@ export function WorkOrdersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {/* Assign button — only for created/unassigned */}
+                        <button
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                          className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                            order.status === 'rueckmeldung_sent'
+                              ? 'text-amber-700 hover:bg-amber-50'
+                              : 'text-gf-text-muted hover:bg-gf-surface hover:text-gf-text'
+                          }`}
+                          title="Detail"
+                        >
+                          {order.status === 'rueckmeldung_sent' ? '📋 RM' : 'Detail'}
+                        </button>
                         {(order.status === 'created') && (
                           <button
                             onClick={() => navigate(`/admin/orders/${order.id}/assign`)}
