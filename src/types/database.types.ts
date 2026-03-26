@@ -14,7 +14,6 @@ export type Database = {
           full_name: string
           role: UserRole
           team: TeamColor | null
-
           is_active: boolean
           created_at: string
           updated_at: string
@@ -40,6 +39,7 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
         }
+        Relationships: never[]
       }
 
       clients: {
@@ -62,6 +62,7 @@ export type Database = {
           code?: string
           is_active?: boolean
         }
+        Relationships: never[]
       }
 
       projects: {
@@ -87,6 +88,7 @@ export type Database = {
           client_id?: string | null
           is_active?: boolean
         }
+        Relationships: never[]
       }
 
       operators: {
@@ -109,6 +111,7 @@ export type Database = {
           name?: string
           is_active?: boolean
         }
+        Relationships: never[]
       }
 
       work_orders: {
@@ -154,7 +157,28 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
-        Update: Partial<Database['public']['Tables']['work_orders']['Insert']>
+        Update: {
+          id?: string
+          order_number?: string
+          client_id?: string
+          project_id?: string
+          operator_id?: string
+          line?: string
+          work_type?: WorkType
+          status?: WorkOrderStatus
+          priority?: PriorityLevel
+          assigned_team?: TeamColor | null
+          assigned_technician?: string | null
+          assigned_date?: string | null
+          address?: string | null
+          postal_code?: string | null
+          city?: string | null
+          internal_notes?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: never[]
       }
 
       wo_detail_soplado: {
@@ -176,7 +200,15 @@ export type Database = {
           result?: string | null
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_soplado']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          meters?: number | null
+          section?: string | null
+          tube_diameter?: string | null
+          result?: string | null
+        }
+        Relationships: never[]
       }
 
       wo_detail_fusion_ap: {
@@ -198,7 +230,15 @@ export type Database = {
           has_measurement_cert?: boolean
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_fusion_ap']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          splice_count?: number | null
+          fiber_type?: string | null
+          fusion_losses?: number | null
+          has_measurement_cert?: boolean
+        }
+        Relationships: never[]
       }
 
       wo_detail_fusion_dp: {
@@ -220,7 +260,15 @@ export type Database = {
           has_measurement_cert?: boolean
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_fusion_dp']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          splice_count?: number | null
+          fiber_type?: string | null
+          fusion_losses?: number | null
+          has_measurement_cert?: boolean
+        }
+        Relationships: never[]
       }
 
       wo_detail_alta: {
@@ -240,7 +288,14 @@ export type Database = {
           client_signature?: boolean
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_alta']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          access_type?: string | null
+          equipment_installed?: string | null
+          client_signature?: boolean
+        }
+        Relationships: never[]
       }
 
       wo_detail_nt: {
@@ -262,7 +317,15 @@ export type Database = {
           configuration?: string | null
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_nt']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          nt_type?: string | null
+          serial_number?: string | null
+          location?: string | null
+          configuration?: string | null
+        }
+        Relationships: never[]
       }
 
       wo_detail_patchkabel: {
@@ -284,7 +347,15 @@ export type Database = {
           test_result?: string | null
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['wo_detail_patchkabel']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          connected_section?: string | null
+          cable_length?: number | null
+          connector_type?: string | null
+          test_result?: string | null
+        }
+        Relationships: never[]
       }
 
       work_order_photos: {
@@ -306,7 +377,15 @@ export type Database = {
           uploaded_by: string
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['work_order_photos']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          storage_path?: string
+          photo_type?: PhotoType
+          caption?: string | null
+          uploaded_by?: string
+        }
+        Relationships: never[]
       }
 
       work_order_state_history: {
@@ -328,7 +407,15 @@ export type Database = {
           notes?: string | null
           created_at?: string
         }
-        Update: Partial<Database['public']['Tables']['work_order_state_history']['Insert']>
+        Update: {
+          id?: string
+          work_order_id?: string
+          from_status?: WorkOrderStatus | null
+          to_status?: WorkOrderStatus
+          changed_by?: string
+          notes?: string | null
+        }
+        Relationships: never[]
       }
 
       materials: {
@@ -354,9 +441,16 @@ export type Database = {
           min_stock?: number
           is_active?: boolean
         }
+        Relationships: never[]
       }
     }
 
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
     Enums: {
       user_role: UserRole
       team_color: TeamColor
@@ -365,6 +459,9 @@ export type Database = {
       priority_level: PriorityLevel
       photo_type: PhotoType
       material_unit: MaterialUnit
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

@@ -6,6 +6,9 @@ export const ROUTES = {
   ADMIN: {
     DASHBOARD: '/admin',
     ORDERS: '/admin/orders',
+    ORDERS_NEW: '/admin/orders/new',
+    ORDERS_EDIT: '/admin/orders/:id/edit',
+    ORDERS_ASSIGN: '/admin/orders/:id/assign',
     CERTIFICATION: '/admin/certification',
     PERSONNEL: '/admin/personnel',
     MATERIALS: '/admin/materials',

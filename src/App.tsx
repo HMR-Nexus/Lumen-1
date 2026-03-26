@@ -8,6 +8,9 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { AdminDashboard } from '@/pages/admin/AdminDashboard'
+import { WorkOrdersPage } from '@/pages/admin/WorkOrdersPage'
+import { WorkOrderFormPage } from '@/pages/admin/WorkOrderFormPage'
+import { WorkOrderAssignPage } from '@/pages/admin/WorkOrderAssignPage'
 import { TechDashboard } from '@/pages/technician/TechDashboard'
 import { ContractorDashboard } from '@/pages/contractor/ContractorDashboard'
 import { ROUTES } from '@/config/routes'
@@ -25,6 +28,10 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN.DASHBOARD} element={<AdminDashboard />} />
+              <Route path={ROUTES.ADMIN.ORDERS} element={<WorkOrdersPage />} />
+              <Route path={ROUTES.ADMIN.ORDERS_NEW} element={<WorkOrderFormPage />} />
+              <Route path={ROUTES.ADMIN.ORDERS_EDIT} element={<WorkOrderFormPage />} />
+              <Route path={ROUTES.ADMIN.ORDERS_ASSIGN} element={<WorkOrderAssignPage />} />
             </Route>
           </Route>
 
