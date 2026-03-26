@@ -130,7 +130,7 @@ export function RueckmeldungPage() {
         setIsLoading(false)
         return
       }
-      setOrder(orderData as typeof order)
+      setOrder(orderData as unknown as typeof order)
       setPhotos((photoData ?? []) as Photo[])
 
       // Load existing detail

@@ -108,7 +108,7 @@ export function TechOrderDetailPage() {
         setIsLoading(false)
         return
       }
-      setOrder(orderData as typeof order)
+      setOrder(orderData as unknown as typeof order)
       setHistory(histData as StateHistoryEntry[])
 
       // Load detail
