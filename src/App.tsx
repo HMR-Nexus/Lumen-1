@@ -5,6 +5,8 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { TechnicianLayout } from '@/components/layout/TechnicianLayout'
 import { ContractorLayout } from '@/components/layout/ContractorLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { AdminDashboard } from '@/pages/admin/AdminDashboard'
 import { TechDashboard } from '@/pages/technician/TechDashboard'
 import { ContractorDashboard } from '@/pages/contractor/ContractorDashboard'
@@ -16,6 +18,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+          <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+          <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
           {/* Admin routes */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

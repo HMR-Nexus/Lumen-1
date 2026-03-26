@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { UserRole } from '@/types/enums'
 import { AuthContext, type AuthUser } from './authTypes'
+import { authService } from '@/services/authService'
+import { supabase } from '@/lib/supabase'
 
 export type { AuthUser, AuthContextType } from './authTypes'
 
+// ── Dev-only mock users ──────────────────────────────────────
 const DEV_USERS: Record<UserRole, AuthUser> = {
   admin: {
     id: 'dev-admin',
@@ -14,8 +17,8 @@ const DEV_USERS: Record<UserRole, AuthUser> = {
   },
   technician: {
     id: 'dev-tech',
-    email: null,
-    fullName: 'Max Techniker',
+    email: 'tech@nexus-engineering.de',
+    fullName: 'Max Müller',
     role: 'technician',
     team: 'rot',
   },
@@ -29,24 +32,87 @@ const DEV_USERS: Record<UserRole, AuthUser> = {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [mockRole, setMockRole] = useState<UserRole>('admin')
-  const [isLoading] = useState(false)
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDevMode, setIsDevMode] = useState(false)
 
-  const user = DEV_USERS[mockRole]
+  // ── Bootstrap: check existing session on mount ──
+  useEffect(() => {
+    let mounted = true
+
+    async function initAuth() {
+      try {
+        const profile = await authService.getCurrentUser()
+        if (mounted) setUser(profile)
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+
+    initAuth()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
+      if (event === 'SIGNED_OUT' || !session) {
+        if (!isDevMode) setUser(null)
+        return
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        const profile = await authService.getCurrentUser()
+        if (mounted && !isDevMode && profile) setUser(profile)
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [isDevMode])
+
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    const result = await authService.signInWithEmail(email, password)
+    if (result.user) {
+      setUser(result.user)
+      setIsDevMode(false)
+    }
+    return { error: result.error }
+  }, [])
 
   const signOut = useCallback(async () => {
-    setMockRole('admin')
+    if (isDevMode) {
+      setUser(null)
+      setIsDevMode(false)
+      return
+    }
+    await authService.signOut()
+    setUser(null)
+  }, [isDevMode])
+
+  const resetPassword = useCallback(async (email: string) => {
+    return authService.resetPassword(email)
+  }, [])
+
+  const devSetRole = useCallback((role: UserRole) => {
+    setUser(DEV_USERS[role])
+    setIsDevMode(true)
+    setIsLoading(false)
   }, [])
 
   const value = useMemo(
     () => ({
       user,
-      role: user.role,
+      role: user?.role ?? null,
       isLoading,
+      signInWithEmail,
       signOut,
-      devSetRole: setMockRole,
+      resetPassword,
+      devSetRole,
     }),
-    [user, isLoading, signOut],
+    [user, isLoading, signInWithEmail, signOut, resetPassword, devSetRole],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,5 +1,9 @@
 import type { UserRole, TeamColor, WorkOrderStatus, WorkType } from './enums'
 
+type PriorityLevel = 'normal' | 'alta' | 'urgente'
+type PhotoType = 'before' | 'during' | 'after'
+type MaterialUnit = 'm' | 'ud' | 'rollo' | 'caja'
+
 export type Database = {
   public: {
     Tables: {
@@ -10,7 +14,7 @@ export type Database = {
           full_name: string
           role: UserRole
           team: TeamColor | null
-          pin_code: string | null
+
           is_active: boolean
           created_at: string
           updated_at: string
@@ -37,23 +41,93 @@ export type Database = {
           updated_at?: string
         }
       }
+
+      clients: {
+        Row: {
+          id: string
+          name: string
+          code: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          code: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          code?: string
+          is_active?: boolean
+        }
+      }
+
+      projects: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          client_id: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          client_id?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          code?: string
+          name?: string
+          client_id?: string | null
+          is_active?: boolean
+        }
+      }
+
+      operators: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          code?: string
+          name?: string
+          is_active?: boolean
+        }
+      }
+
       work_orders: {
         Row: {
           id: string
           order_number: string
-          client: string
-          project: string
-          operator: string
+          client_id: string
+          project_id: string
+          operator_id: string
           line: string
           work_type: WorkType
           status: WorkOrderStatus
+          priority: PriorityLevel
           assigned_team: TeamColor | null
           assigned_technician: string | null
+          assigned_date: string | null
           address: string | null
           postal_code: string | null
           city: string | null
-          assigned_date: string | null
-          priority: 'normal' | 'alta' | 'urgente'
           internal_notes: string | null
           created_by: string
           created_at: string
@@ -62,19 +136,19 @@ export type Database = {
         Insert: {
           id?: string
           order_number: string
-          client: string
-          project: string
-          operator: string
+          client_id: string
+          project_id: string
+          operator_id: string
           line: string
           work_type: WorkType
           status?: WorkOrderStatus
+          priority?: PriorityLevel
           assigned_team?: TeamColor | null
           assigned_technician?: string | null
+          assigned_date?: string | null
           address?: string | null
           postal_code?: string | null
           city?: string | null
-          assigned_date?: string | null
-          priority?: 'normal' | 'alta' | 'urgente'
           internal_notes?: string | null
           created_by: string
           created_at?: string
@@ -82,12 +156,215 @@ export type Database = {
         }
         Update: Partial<Database['public']['Tables']['work_orders']['Insert']>
       }
+
+      wo_detail_soplado: {
+        Row: {
+          id: string
+          work_order_id: string
+          meters: number | null
+          section: string | null
+          tube_diameter: string | null
+          result: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          meters?: number | null
+          section?: string | null
+          tube_diameter?: string | null
+          result?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_soplado']['Insert']>
+      }
+
+      wo_detail_fusion_ap: {
+        Row: {
+          id: string
+          work_order_id: string
+          splice_count: number | null
+          fiber_type: string | null
+          fusion_losses: number | null
+          has_measurement_cert: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          splice_count?: number | null
+          fiber_type?: string | null
+          fusion_losses?: number | null
+          has_measurement_cert?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_fusion_ap']['Insert']>
+      }
+
+      wo_detail_fusion_dp: {
+        Row: {
+          id: string
+          work_order_id: string
+          splice_count: number | null
+          fiber_type: string | null
+          fusion_losses: number | null
+          has_measurement_cert: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          splice_count?: number | null
+          fiber_type?: string | null
+          fusion_losses?: number | null
+          has_measurement_cert?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_fusion_dp']['Insert']>
+      }
+
+      wo_detail_alta: {
+        Row: {
+          id: string
+          work_order_id: string
+          access_type: string | null
+          equipment_installed: string | null
+          client_signature: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          access_type?: string | null
+          equipment_installed?: string | null
+          client_signature?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_alta']['Insert']>
+      }
+
+      wo_detail_nt: {
+        Row: {
+          id: string
+          work_order_id: string
+          nt_type: string | null
+          serial_number: string | null
+          location: string | null
+          configuration: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          nt_type?: string | null
+          serial_number?: string | null
+          location?: string | null
+          configuration?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_nt']['Insert']>
+      }
+
+      wo_detail_patchkabel: {
+        Row: {
+          id: string
+          work_order_id: string
+          connected_section: string | null
+          cable_length: number | null
+          connector_type: string | null
+          test_result: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          connected_section?: string | null
+          cable_length?: number | null
+          connector_type?: string | null
+          test_result?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wo_detail_patchkabel']['Insert']>
+      }
+
+      work_order_photos: {
+        Row: {
+          id: string
+          work_order_id: string
+          storage_path: string
+          photo_type: PhotoType
+          caption: string | null
+          uploaded_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          storage_path: string
+          photo_type: PhotoType
+          caption?: string | null
+          uploaded_by: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['work_order_photos']['Insert']>
+      }
+
+      work_order_state_history: {
+        Row: {
+          id: string
+          work_order_id: string
+          from_status: WorkOrderStatus | null
+          to_status: WorkOrderStatus
+          changed_by: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_order_id: string
+          from_status?: WorkOrderStatus | null
+          to_status: WorkOrderStatus
+          changed_by: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['work_order_state_history']['Insert']>
+      }
+
+      materials: {
+        Row: {
+          id: string
+          name: string
+          unit: MaterialUnit
+          min_stock: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          unit: MaterialUnit
+          min_stock?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          unit?: MaterialUnit
+          min_stock?: number
+          is_active?: boolean
+        }
+      }
     }
+
     Enums: {
       user_role: UserRole
       team_color: TeamColor
       work_order_status: WorkOrderStatus
       work_type: WorkType
+      priority_level: PriorityLevel
+      photo_type: PhotoType
+      material_unit: MaterialUnit
     }
   }
 }

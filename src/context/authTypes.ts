@@ -13,7 +13,9 @@ export interface AuthContextType {
   user: AuthUser | null
   role: UserRole | null
   isLoading: boolean
+  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: string | null }>
   devSetRole: (role: UserRole) => void
 }
 
