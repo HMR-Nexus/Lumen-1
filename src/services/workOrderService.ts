@@ -238,12 +238,16 @@ export async function upsertWorkOrderDetail(
 }
 
 export async function fetchWorkOrderDetail(table: DetailTable, workOrderId: string) {
+  // Use array + limit instead of maybeSingle() to avoid errors when
+  // duplicate rows exist (can happen if RLS blocked SELECT on first attempt)
   const { data, error } = await supabase
     .from(table as 'wo_detail_soplado')
     .select('*')
     .eq('work_order_id', workOrderId)
-    .maybeSingle()
-  return { data, error: error?.message ?? null }
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const row = data && data.length > 0 ? data[0] : null
+  return { data: row, error: error?.message ?? null }
 }
 
 // ── Technician / Sprint 4 ──────────────────────────────────────

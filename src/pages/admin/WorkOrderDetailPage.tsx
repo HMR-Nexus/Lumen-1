@@ -62,6 +62,29 @@ const TEAM_DOT: Record<TeamColor, string> = {
   gelb: 'bg-team-gelb',
 }
 
+// Human-readable labels for all wo_detail_* fields
+const DETAIL_FIELD_LABELS: Record<string, string> = {
+  meters: 'Meter',
+  section: 'Abschnitt',
+  tube_diameter: 'Rohrdurchmesser',
+  result: 'Ergebnis',
+  splice_count: 'Spleiß-Anzahl',
+  fiber_type: 'Fasertyp',
+  fusion_losses: 'Schmelzverluste (dB)',
+  has_measurement_cert: 'Meßprotokoll',
+  access_type: 'Zugangstyp',
+  equipment_installed: 'Installierte Geräte',
+  client_signature: 'Kundenunterschrift',
+  nt_type: 'NT-Typ',
+  serial_number: 'Seriennummer',
+  location: 'Standort',
+  configuration: 'Konfiguration',
+  connected_section: 'Verbundener Abschnitt',
+  cable_length: 'Kabellänge (m)',
+  connector_type: 'Steckertyp',
+  test_result: 'Testergebnis',
+}
+
 type PhotoType = 'before' | 'during' | 'after'
 
 const PHOTO_LABELS: Record<PhotoType, string> = {
@@ -179,7 +202,8 @@ export function WorkOrderDetailPage() {
     )
   }
 
-  const hasDetail = Object.values(detail).some((v) => v !== null && v !== '' && v !== undefined && v !== false)
+  // Show detail section whenever a record was fetched (even if all fields are null)
+  const hasDetail = Object.keys(detail).length > 0
   const photosByType = (type: PhotoType) => photos.filter((p) => p.photo_type === type)
 
   return (
@@ -306,13 +330,17 @@ export function WorkOrderDetailPage() {
           <p className="mb-4 text-xs text-gf-text-muted">Vom Techniker eingetragene Daten</p>
           <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             {Object.entries(detail).map(([key, value]) => {
-              if (value === null || value === undefined || value === '') return null
-              const label = key.replace(/_/g, ' ')
+              const label = DETAIL_FIELD_LABELS[key] ?? key.replace(/_/g, ' ')
+              const isEmpty = value === null || value === undefined || value === ''
               return (
                 <div key={key}>
                   <p className="text-xs capitalize text-gf-text-muted">{label}</p>
-                  <p className="font-medium text-gf-text">
-                    {typeof value === 'boolean' ? (value ? 'Ja ✓' : 'Nein') : String(value)}
+                  <p className={`font-medium ${isEmpty ? 'text-gf-text-muted' : 'text-gf-text'}`}>
+                    {isEmpty
+                      ? '—'
+                      : typeof value === 'boolean'
+                        ? value ? 'Ja ✓' : 'Nein ✗'
+                        : String(value)}
                   </p>
                 </div>
               )
@@ -320,6 +348,18 @@ export function WorkOrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Technician notes — extracted from rueckmeldung_sent history entry */}
+      {(() => {
+        const rmEntry = history.find((e) => e.to_status === 'rueckmeldung_sent')
+        if (!rmEntry?.notes || rmEntry.notes === 'Rückmeldung gesendet') return null
+        return (
+          <div className="rounded-xl border border-gf-border bg-gf-card p-5">
+            <h3 className="mb-2 font-display text-sm font-semibold text-gf-text">Notizen vom Techniker</h3>
+            <p className="text-sm text-gf-text">{rmEntry.notes}</p>
+          </div>
+        )
+      })()}
 
       {/* Photos */}
       {photos.length > 0 && (
