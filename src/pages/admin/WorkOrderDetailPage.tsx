@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -10,6 +10,7 @@ import {
   workTypeToDetailTable,
   getPhotoPublicUrl,
 } from '@/services/workOrderService'
+import { generateCertificatePdf } from '@/services/pdfService'
 import type { WorkOrderStatus, WorkType, TeamColor } from '@/types/enums'
 
 const STATUS_LABELS: Record<WorkOrderStatus, string> = {
@@ -136,7 +137,24 @@ export function WorkOrderDetailPage() {
   const [history, setHistory] = useState<StateEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCertifying, setIsCertifying] = useState(false)
+  const [isSendingToClient, setIsSendingToClient] = useState(false)
+  const [isAccepting, setIsAccepting] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
+  const [isReturning, setIsReturning] = useState(false)
+  const [isInvoicing, setIsInvoicing] = useState(false)
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Modal states
+  const [showSendToClientModal, setShowSendToClientModal] = useState(false)
+  const [showAcceptModal, setShowAcceptModal] = useState(false)
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [acceptNote, setAcceptNote] = useState('')
+  const [invoiceNumber, setInvoiceNumber] = useState('')
+  const [rejectError, setRejectError] = useState('')
+  const [invoiceError, setInvoiceError] = useState('')
 
   useEffect(() => {
     if (!id) return
@@ -165,11 +183,21 @@ export function WorkOrderDetailPage() {
     })
   }, [id])
 
+  const reloadOrderAndHistory = useCallback(async () => {
+    if (!id) return
+    const [{ data: orderData }, { data: histData }] = await Promise.all([
+      fetchWorkOrder(id),
+      fetchStateHistory(id),
+    ])
+    if (orderData) setOrder(orderData as unknown as typeof order)
+    setHistory((histData ?? []) as StateEntry[])
+  }, [id])
+
   async function handleCertify() {
     if (!id || !user || !order) return
     setIsCertifying(true)
     setError(null)
-    const { data: updated, error } = await transitionWorkOrderStatus(
+    const { error } = await transitionWorkOrderStatus(
       id,
       'internally_certified',
       user.id,
@@ -177,13 +205,133 @@ export function WorkOrderDetailPage() {
     )
     if (error) {
       setError(error)
-      setIsCertifying(false)
     } else {
-      setOrder((prev) => prev ? { ...prev, status: updated!.status } : prev)
-      const { data: histData } = await fetchStateHistory(id)
-      setHistory((histData ?? []) as StateEntry[])
-      setIsCertifying(false)
+      await reloadOrderAndHistory()
     }
+    setIsCertifying(false)
+  }
+
+  async function handleSendToClient() {
+    if (!id || !user) return
+    setIsSendingToClient(true)
+    setError(null)
+    const { error } = await transitionWorkOrderStatus(
+      id,
+      'sent_to_client',
+      user.id,
+      'An Kunden gesendet',
+    )
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+      setShowSendToClientModal(false)
+    }
+    setIsSendingToClient(false)
+  }
+
+  async function handleClientAccept() {
+    if (!id || !user) return
+    setIsAccepting(true)
+    setError(null)
+    const note = acceptNote.trim()
+      ? `Vom Kunden akzeptiert: ${acceptNote.trim()}`
+      : 'Vom Kunden akzeptiert'
+    const { error } = await transitionWorkOrderStatus(id, 'client_accepted', user.id, note)
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+      setShowAcceptModal(false)
+      setAcceptNote('')
+    }
+    setIsAccepting(false)
+  }
+
+  async function handleClientReject() {
+    if (!id || !user) return
+    if (!rejectReason.trim()) {
+      setRejectError('Bitte Ablehnungsgrund angeben')
+      return
+    }
+    setIsRejecting(true)
+    setError(null)
+    const { error } = await transitionWorkOrderStatus(
+      id,
+      'client_rejected',
+      user.id,
+      `Abgelehnt: ${rejectReason.trim()}`,
+    )
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+      setShowRejectModal(false)
+      setRejectReason('')
+      setRejectError('')
+    }
+    setIsRejecting(false)
+  }
+
+  async function handleReturnForRevision() {
+    if (!id || !user) return
+    setIsReturning(true)
+    setError(null)
+    const { error } = await transitionWorkOrderStatus(
+      id,
+      'internally_certified',
+      user.id,
+      'Zur Überarbeitung zurückgegeben',
+    )
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+    }
+    setIsReturning(false)
+  }
+
+  async function handleInvoice() {
+    if (!id || !user) return
+    if (!invoiceNumber.trim()) {
+      setInvoiceError('Bitte Rechnungsnummer angeben')
+      return
+    }
+    setIsInvoicing(true)
+    setError(null)
+    const { error } = await transitionWorkOrderStatus(
+      id,
+      'invoiced',
+      user.id,
+      `Rechnung: ${invoiceNumber.trim()}`,
+    )
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+      setShowInvoiceModal(false)
+      setInvoiceNumber('')
+      setInvoiceError('')
+    }
+    setIsInvoicing(false)
+  }
+
+  async function handleMarkPaid() {
+    if (!id || !user) return
+    setIsMarkingPaid(true)
+    setError(null)
+    const { error } = await transitionWorkOrderStatus(id, 'paid', user.id, 'Als bezahlt markiert')
+    if (error) {
+      setError(error)
+    } else {
+      await reloadOrderAndHistory()
+    }
+    setIsMarkingPaid(false)
+  }
+
+  function handleDownloadPdf() {
+    if (!order) return
+    generateCertificatePdf(order, detail, photos, history)
   }
 
   if (isLoading) {
@@ -227,12 +375,22 @@ export function WorkOrderDetailPage() {
             <p className="text-sm text-gf-text-muted">{WORK_TYPE_LABELS[order.work_type]} · Linie {order.line}</p>
           </div>
         </div>
-        <button
-          onClick={() => navigate(`/admin/orders/${id}/edit`)}
-          className="shrink-0 rounded-lg border border-gf-border px-3 py-1.5 text-xs font-medium text-gf-text-muted hover:border-gf-primary hover:text-gf-primary transition-colors"
-        >
-          Bearbeiten
-        </button>
+        <div className="flex gap-2">
+          {(['internally_certified', 'sent_to_client', 'client_accepted', 'invoiced', 'paid'] as WorkOrderStatus[]).includes(order.status) && (
+            <button
+              onClick={handleDownloadPdf}
+              className="shrink-0 rounded-lg border border-gf-border px-3 py-1.5 text-xs font-medium text-gf-text-muted hover:border-gf-primary hover:text-gf-primary transition-colors"
+            >
+              📄 PDF
+            </button>
+          )}
+          <button
+            onClick={() => navigate(`/admin/orders/${id}/edit`)}
+            className="shrink-0 rounded-lg border border-gf-border px-3 py-1.5 text-xs font-medium text-gf-text-muted hover:border-gf-primary hover:text-gf-primary transition-colors"
+          >
+            Bearbeiten
+          </button>
+        </div>
       </div>
 
       {/* Certification banner */}
@@ -254,10 +412,113 @@ export function WorkOrderDetailPage() {
         </div>
       )}
 
+      {/* LUM-015: Send to client */}
       {order.status === 'internally_certified' && (
-        <div className="rounded-xl border border-gf-success/30 bg-gf-success/10 px-4 py-3">
-          <p className="text-sm font-semibold text-emerald-700">Intern zertifiziert</p>
-          <p className="text-xs text-emerald-600">Dieser Auftrag kann jetzt an den Kunden weitergeleitet werden.</p>
+        <div className="rounded-xl border border-gf-success/40 bg-gf-success/10 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-emerald-700">Intern zertifiziert ✓ — Bereit zum Versand an Kunden</p>
+              <p className="text-xs text-emerald-600">Dieser Auftrag kann jetzt an den Kunden weitergeleitet werden.</p>
+            </div>
+            <button
+              onClick={() => setShowSendToClientModal(true)}
+              className="shrink-0 rounded-lg bg-gf-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              📤 An Kunden senden
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* LUM-017: Client accept/reject */}
+      {order.status === 'sent_to_client' && (
+        <div className="rounded-xl border border-gf-primary/30 bg-gf-primary/10 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-gf-primary-dark">An Kunden gesendet — Warten auf Rückmeldung</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAcceptModal(true)}
+                className="shrink-0 rounded-lg bg-gf-success px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+              >
+                ✅ Akzeptiert
+              </button>
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="shrink-0 rounded-lg bg-gf-danger px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+              >
+                ❌ Abgelehnt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LUM-017: Client rejected */}
+      {order.status === 'client_rejected' && (() => {
+        const rejEntry = [...history].reverse().find((e) => e.to_status === 'client_rejected')
+        const reason = rejEntry?.notes?.replace(/^Abgelehnt:\s*/, '') ?? 'Kein Grund angegeben'
+        return (
+          <div className="rounded-xl border border-gf-danger/40 bg-gf-danger/10 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-rose-700">Vom Kunden abgelehnt</p>
+                <p className="text-sm text-rose-600">{reason}</p>
+              </div>
+              <button
+                disabled={isReturning}
+                onClick={handleReturnForRevision}
+                className="shrink-0 rounded-lg bg-gf-warning px-4 py-2 text-sm font-semibold text-amber-900 hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {isReturning ? 'Wird gesendet…' : '🔄 Zur Überarbeitung senden'}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* LUM-018: Invoice */}
+      {order.status === 'client_accepted' && (
+        <div className="rounded-xl border border-gf-success/40 bg-gf-success/10 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-emerald-700">Vom Kunden akzeptiert ✓</p>
+              <p className="text-xs text-emerald-600">Bereit zur Fakturierung.</p>
+            </div>
+            <button
+              onClick={() => setShowInvoiceModal(true)}
+              className="shrink-0 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              🧾 Fakturieren
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* LUM-018: Invoiced */}
+      {order.status === 'invoiced' && (
+        <div className="rounded-xl border border-purple-300 bg-purple-50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-purple-700">Fakturiert</p>
+              <p className="text-xs text-purple-600">Rechnung wurde gestellt — warten auf Zahlung.</p>
+            </div>
+            <button
+              disabled={isMarkingPaid}
+              onClick={handleMarkPaid}
+              className="shrink-0 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {isMarkingPaid ? 'Wird gespeichert…' : '💳 Als bezahlt markieren'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* LUM-018: Paid */}
+      {order.status === 'paid' && (
+        <div className="rounded-xl border border-emerald-400 bg-emerald-100 px-4 py-3">
+          <p className="font-semibold text-emerald-800">✅ Bezahlt — Auftrag abgeschlossen</p>
         </div>
       )}
 
@@ -439,6 +700,134 @@ export function WorkOrderDetailPage() {
           </ol>
         </div>
       )}
+
+      {/* ─── Modals ─── */}
+      <Modal open={showSendToClientModal} onClose={() => setShowSendToClientModal(false)}>
+        <p className="mb-4 text-sm text-gf-text">Auftrag an den Kunden senden?</p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setShowSendToClientModal(false)}
+            className="rounded-lg border border-gf-border px-4 py-2 text-sm text-gf-text-muted hover:bg-gf-surface transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            disabled={isSendingToClient}
+            onClick={handleSendToClient}
+            className="rounded-lg bg-gf-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {isSendingToClient ? 'Wird gesendet…' : 'Bestätigen'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={showAcceptModal} onClose={() => { setShowAcceptModal(false); setAcceptNote('') }}>
+        <p className="mb-2 text-sm font-semibold text-gf-text">Kunde akzeptiert</p>
+        <textarea
+          value={acceptNote}
+          onChange={(e) => setAcceptNote(e.target.value)}
+          placeholder="Optionale Notiz…"
+          className="mb-4 w-full rounded-lg border border-gf-border bg-gf-surface px-3 py-2 text-sm text-gf-text placeholder:text-gf-text-muted focus:border-gf-primary focus:outline-none"
+          rows={2}
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => { setShowAcceptModal(false); setAcceptNote('') }}
+            className="rounded-lg border border-gf-border px-4 py-2 text-sm text-gf-text-muted hover:bg-gf-surface transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            disabled={isAccepting}
+            onClick={handleClientAccept}
+            className="rounded-lg bg-gf-success px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {isAccepting ? 'Wird gespeichert…' : '✅ Akzeptieren'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={showRejectModal} onClose={() => { setShowRejectModal(false); setRejectReason(''); setRejectError('') }}>
+        <p className="mb-2 text-sm font-semibold text-gf-text">Ablehnung begründen</p>
+        <textarea
+          value={rejectReason}
+          onChange={(e) => { setRejectReason(e.target.value); setRejectError('') }}
+          placeholder="Ablehnungsgrund (Pflichtfeld)…"
+          className={`mb-1 w-full rounded-lg border bg-gf-surface px-3 py-2 text-sm text-gf-text placeholder:text-gf-text-muted focus:outline-none ${rejectError ? 'border-gf-danger focus:border-gf-danger' : 'border-gf-border focus:border-gf-primary'}`}
+          rows={3}
+        />
+        {rejectError && <p className="mb-3 text-xs text-rose-600">{rejectError}</p>}
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => { setShowRejectModal(false); setRejectReason(''); setRejectError('') }}
+            className="rounded-lg border border-gf-border px-4 py-2 text-sm text-gf-text-muted hover:bg-gf-surface transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            disabled={isRejecting}
+            onClick={handleClientReject}
+            className="rounded-lg bg-gf-danger px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {isRejecting ? 'Wird gespeichert…' : '❌ Ablehnen'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={showInvoiceModal} onClose={() => { setShowInvoiceModal(false); setInvoiceNumber(''); setInvoiceError('') }}>
+        <p className="mb-2 text-sm font-semibold text-gf-text">Rechnungsnummer eingeben</p>
+        <input
+          type="text"
+          value={invoiceNumber}
+          onChange={(e) => { setInvoiceNumber(e.target.value); setInvoiceError('') }}
+          placeholder="z.B. RE-2026-0042"
+          className={`mb-1 w-full rounded-lg border bg-gf-surface px-3 py-2 text-sm text-gf-text placeholder:text-gf-text-muted focus:outline-none ${invoiceError ? 'border-gf-danger focus:border-gf-danger' : 'border-gf-border focus:border-gf-primary'}`}
+        />
+        {invoiceError && <p className="mb-3 text-xs text-rose-600">{invoiceError}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={() => { setShowInvoiceModal(false); setInvoiceNumber(''); setInvoiceError('') }}
+            className="rounded-lg border border-gf-border px-4 py-2 text-sm text-gf-text-muted hover:bg-gf-surface transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            disabled={isInvoicing}
+            onClick={handleInvoice}
+            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {isInvoicing ? 'Wird gespeichert…' : '🧾 Fakturieren'}
+          </button>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+/* ─── Reusable Modal ─── */
+function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    >
+      <div className="mx-4 w-full max-w-md rounded-2xl border border-gf-border bg-gf-card p-6 shadow-xl">
+        {children}
+      </div>
     </div>
   )
 }
